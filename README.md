@@ -6,16 +6,38 @@ CityTwin AI (Sentinel AI) is a next-generation, high-performance **Smart City Co
 
 ---
 
-## ✨ Features
+## ✨ Features & Capabilities
 
-- **🌐 Interactive Digital Twin Map**: Live Mapbox-powered dashboard overlay displaying sensor grids, transit routes, and pulsing incident pins categorized by severity (Critical, Warning, Info).
-- **📹 Vision AI CCTV Monitoring**: Simulated real-time object detection stream (cars, buses, trucks, pedestrians) that automatically flags road obstructions, accidents, and lane blockages.
-- **💬 Sentinel AI Copilot**: A multi-agent AI chat assistant powered by **Google Gemini API** (with local fallback) to query city status, trigger emergency responses, and perform smart calculations.
-- **🚦 Smart Traffic Optimization**: Live queue tracking and signal phase scheduling, featuring priority lane overrides for emergency vehicles.
-- **🌊 Flood Monitoring & Prediction**: Dynamic water level sensors, flood danger zone mapping, and predictive risk meters based on weather triggers.
-- **📊 Executive Reports Generator**: Auto-compiles live operational statistics, incident histories, and resolution metrics into downloadable executive summaries.
-- **🚇 Smart Transit Tracker**: Moniting live updates from the Kochi Metro, Water Metro, and public bus networks.
-- **🎮 Disaster Simulation Sandbox**: An interactive control board to stress-test the city by simulating extreme rainfall, peak traffic congestion, or sudden road blockages.
+### 🚑 Emergency Green Corridor & Ambulance Priority
+- **Automatic Signal Preemption**: Instantly turns traffic signals green along designated emergency routes when an ambulance, police unit, or fire truck approaches.
+- **Green Corridor Route Optimization**: Calculates fastest routes to major hospitals (e.g. Ernakulam Medical Trust, Aster Medcity, Amrita Hospital) while clearing downstream intersection bottlenecks.
+
+### 🚦 Reinforcement-Learning Adaptive Traffic Signals
+- **Dynamic Phase Allocation**: Automatically adjusts green light timing (from 15s to 60s) based on live vehicle queue lengths at key junctions like Kundannoor, Edappally, Palarivattom, and Kaloor.
+- **Manual & AI Mode Toggle**: Allows operators to switch individual junctions between fixed-cycle timing and adaptive AI signal control.
+
+### 📹 Vision AI CCTV Analytics
+- **Live Stream Object Detection**: Tracks cars, buses, trucks, motorcycles, and pedestrians in real-time across key surveillance feeds.
+- **Automatic Incident Recognition**: Instantly detects stalled vehicles, lane blockages, and traffic collisions (e.g., stalled truck alerts on CAM-18).
+
+### 💬 Sentinel AI Copilot (Powered by Google Gemini)
+- **Multi-Agent Reasoning**: Natural language command assistant that queries real-time city state, evaluates risk metrics, and triggers automated emergency workflows.
+- **Local Fallback**: Works seamlessly with simulation mode if an API key is not configured.
+
+### 🌐 Interactive Digital Twin Map & Historical Replay
+- **Kochi Geo-Visualizer**: Mapbox-powered interactive 3D map featuring live pulsing incident pins categorized by severity (Critical, Elevated, Warning).
+- **Incident Playback**: Step-by-step historic time-series replay to analyze past traffic bottlenecks and emergency dispatch events.
+
+### 🌊 Flood Monitoring & Predictive Risk Engine
+- **Water Level Sensor Network**: Real-time depth tracking along Marine Drive, Edappally, and coastal corridors.
+- **Rainfall Risk Trigger**: Predicts elevated flood risks based on monsoon precipitation thresholds and tide levels.
+
+### 👥 Citizen Engagement & Executive Reporting
+- **Citizen Report Portal**: Interface for residents to submit reports on potholes, waterlogging, or power outages with confidence scoring.
+- **Executive Summaries**: Auto-generates downloadable operational briefs for city directors and department heads.
+
+### 🎮 Disaster Simulation Sandbox
+- **Interactive Stress-Testing**: Allows city operators to simulate severe monsoon downpours, rush-hour peak traffic, or major bridge blockages to evaluate infrastructure resilience.
 
 ---
 
