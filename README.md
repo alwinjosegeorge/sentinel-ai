@@ -2,7 +2,7 @@
 
 CityTwin AI (Sentinel AI) is a next-generation, high-performance **Smart City Command Center and Digital Twin Dashboard** for Kochi, Kerala. It combines real-time sensor simulation, Vision AI surveillance analytics, and multi-agent AI reasoning to monitor, simulate, and optimize urban infrastructure.
 
-![CityTwin AI Dashboard](public/citytwin-hero-light.png)
+[![CityTwin AI Dashboard](public/citytwin-hero-light.png)](https://citytwinai.vercel.app/)
 
 ---
 
