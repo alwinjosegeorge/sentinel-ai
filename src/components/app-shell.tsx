@@ -356,8 +356,8 @@ function MobileBottomNav({ active }: { active: { stage: string; path: string } }
     { key: "analyze", to: "/copilot", label: "Analyze", Icon: BrainCircuit },
   ];
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-40 lg:hidden">
-      <div className="glass soft-ring flex items-center justify-around rounded-3xl px-2 py-2 shadow-xl">
+    <nav className="fixed inset-x-2 bottom-2 z-50 lg:hidden">
+      <div className="bg-card/98 border border-border/80 flex items-center justify-around rounded-2xl px-2 py-2 shadow-2xl backdrop-blur-2xl">
         {items.map((item) => {
           const isActive = active.stage === item.key;
           return (

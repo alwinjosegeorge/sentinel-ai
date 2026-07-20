@@ -161,22 +161,21 @@ function SimulatePage() {
                 <Sparkles className="size-4 text-primary animate-pulse" />
               </div>
 
-              {/* Event Name */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Planned Event</label>
                 <select
                   value={evtName}
                   onChange={(e) => handleSelectPreset(e.target.value)}
-                  className="w-full rounded-xl border border-border/45 bg-secondary/75 px-3.5 py-2.5 text-xs text-foreground outline-none focus:border-primary transition-colors font-medium"
+                  className="w-full rounded-xl border border-border/60 bg-secondary/80 px-3 py-2.5 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-colors font-semibold truncate cursor-pointer"
                 >
-                  <option value="Metro Rush Surge · Edappally (500+ passengers)">Metro Rush Surge · Edappally (500+ passengers)</option>
-                  <option value="ISL Football Match · Jawaharlal Nehru Stadium">ISL Football Match · JLN Stadium</option>
-                  <option value="Heavy Monsoon Cloudburst · Ernakulam City">Heavy Monsoon Cloudburst · Ernakulam City</option>
-                  <option value="Vytilla Mobility Hub Peak Rush Hour">Vytilla Mobility Hub Peak Rush Hour</option>
-                  <option value="Concert · Marine Drive Grounds">Concert · Marine Drive Grounds</option>
-                  <option value="Lulu Mall Anniversary Sale · Edappally">Lulu Mall Anniversary Sale · Edappally</option>
-                  <option value="Cochin Carnival Parade · Fort Kochi">Cochin Carnival Parade · Fort Kochi</option>
-                  <option value="Marathon · MG Road stretch">Marathon · MG Road stretch</option>
+                  <option value="Metro Rush Surge · Edappally (500+ passengers)">Metro Rush Surge · Edappally (500+ pax)</option>
+                  <option value="ISL Football Match · Jawaharlal Nehru Stadium">ISL Football Match · JLN Stadium (28k pax)</option>
+                  <option value="Heavy Monsoon Cloudburst · Ernakulam City">Heavy Monsoon Cloudburst · Ernakulam</option>
+                  <option value="Vytilla Mobility Hub Peak Rush Hour">Vytilla Mobility Hub Peak Rush (35k pax)</option>
+                  <option value="Concert · Marine Drive Grounds">Concert · Marine Drive Grounds (18k pax)</option>
+                  <option value="Lulu Mall Anniversary Sale · Edappally">Lulu Mall Sale · Edappally (50k pax)</option>
+                  <option value="Cochin Carnival Parade · Fort Kochi">Cochin Carnival · Fort Kochi (42k pax)</option>
+                  <option value="Marathon · MG Road stretch">Marathon · MG Road stretch (12k pax)</option>
                 </select>
               </div>
 

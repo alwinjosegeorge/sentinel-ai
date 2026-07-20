@@ -202,7 +202,7 @@ function CitizenPortalPage() {
       </button>
 
       {/* Mobile Bottom Tab Navigation Bar */}
-      <nav className="fixed md:hidden bottom-0 inset-x-0 h-16 bg-white/95 border-t border-slate-200 backdrop-blur-xl flex justify-around items-center z-40 px-2 shrink-0 shadow-lg">
+      <nav className="fixed md:hidden bottom-0 inset-x-0 h-16 bg-white border-t border-slate-200/90 flex justify-around items-center z-50 px-2 shrink-0 shadow-2xl">
         <TabButton tab="home" label="Home" Icon={Home} activeTab={activeTab} setActiveTab={setActiveTab} />
         <TabButton tab="map" label="Live Map" Icon={MapPin} activeTab={activeTab} setActiveTab={setActiveTab} />
         <TabButton tab="report" label="Report" Icon={Plus} activeTab={activeTab} setActiveTab={setActiveTab} isMiddle />
