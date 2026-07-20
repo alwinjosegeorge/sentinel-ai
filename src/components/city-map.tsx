@@ -3,7 +3,7 @@ import { type Incident } from "@/data/kochi";
 import { cn } from "@/lib/utils";
 import { useSentinelStore, schematicToLngLat } from "@/lib/store";
 import { ShieldAlert, Video, Eye, Navigation, CheckCircle, Zap } from "lucide-react";
-import "mapbox-gl/dist/mapbox-gl.css";
+import "leaflet/dist/leaflet.css";
 
 interface Props {
   height?: number | string;
@@ -28,8 +28,9 @@ export function CityMap({
 }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const { incidents, mapboxToken, resolveIncident, greenCorridorActive } = useSentinelStore();
+  const layerGroupRef = useRef<any>(null);
+  const routeLayerRef = useRef<any>(null);
+  const { incidents, resolveIncident, greenCorridorActive } = useSentinelStore();
 
   // Selected marker details for popups
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
@@ -44,15 +45,12 @@ export function CityMap({
     geometry: [number, number][];
   } | null>(null);
 
-  const [ambulancePos, setAmbulancePos] = useState<[number, number] | null>(null);
-  const [ambulanceAngle, setAmbulanceAngle] = useState(0);
-
   // Dynamic light/dark theme tracking
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains("dark");
     }
-    return false; // Default to light mode as requested
+    return false;
   });
 
   // Use either custom pins or the store incidents
@@ -69,314 +67,174 @@ export function CityMap({
     return () => observer.disconnect();
   }, []);
 
-  // Initialize Mapbox map
+  // Initialize Leaflet map
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
 
-    let mapboxgl: any;
+    let L: any;
+    let isCancelled = false;
 
-    import("mapbox-gl").then((m) => {
-      mapboxgl = m.default ?? m;
-      mapboxgl.accessToken = mapboxToken;
+    import("leaflet").then((leafletModule) => {
+      if (isCancelled || !mapContainerRef.current) return;
+      L = leafletModule.default ?? leafletModule;
 
-      const kochiCenter: [number, number] = [76.3116, 9.9822];
-
-      const DEFAULT_MAPBOX_TOKEN = "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTAwM2MzN21keG1ycjhpZ3MifQ.-bgrem2g2t5jRYg6BpA2g";
-
-      const isVectorMap = mapboxToken && mapboxToken !== DEFAULT_MAPBOX_TOKEN && mapboxToken.startsWith("pk.");
-
-      // Determine map style based on token and theme
-      let mapStyle: any;
-      // Only use Mapbox vector styles if user has input their own custom Mapbox token
-      if (isVectorMap) {
-        mapStyle = isDarkMode
-          ? "mapbox://styles/mapbox/dark-v11"
-          : "mapbox://styles/mapbox/light-v11";
-      } else {
-        // Fallback to open source raster basemaps if using default or empty token
-        mapStyle = {
-          version: 8,
-          sources: {
-            "raster-tiles": {
-              type: "raster",
-              tiles: [
-                isDarkMode
-                  ? "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
-                  : "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png"
-              ],
-              tileSize: 256,
-              attribution: "© OpenStreetMap contributors, © CartoDB",
-            },
-          },
-          layers: [
-            {
-              id: "raster-layer",
-              type: "raster",
-              source: "raster-tiles",
-              minzoom: 0,
-              maxzoom: 20,
-            },
-          ],
-        };
+      // Clean up previous map instance if any
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
       }
 
-      try {
-        const map = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: mapStyle,
-          center: kochiCenter,
-          zoom: 12,
-          pitch: isVectorMap ? 30 : 0, // Flat 2D view for raster tiles to prevent box skewing
-          antialias: true,
-        });
+      const kochiCenter: [number, number] = [9.9822, 76.3116]; // [lat, lng] for Leaflet
 
-        mapRef.current = map;
+      const map = L.map(mapContainerRef.current, {
+        center: kochiCenter,
+        zoom: 12,
+        zoomControl: interactive,
+        dragging: interactive,
+        scrollWheelZoom: interactive,
+        doubleClickZoom: interactive,
+        attributionControl: false,
+      });
 
-        // Add standard controls
-        map.addControl(new mapboxgl.NavigationControl(), "top-right");
-        map.addControl(new mapboxgl.FullscreenControl(), "top-right");
+      mapRef.current = map;
 
-        // Load custom layers once style loads
-        map.on("load", () => {
-          setupCustomOverlays(map, mapboxgl);
-        });
+      // Add Tile Layer (CartoDB Voyager for light / CartoDB Dark Matter for dark)
+      const tileUrl = isDarkMode
+        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
-        // Cleanup on unmount
-        return () => {
-          map.remove();
-        };
-      } catch (err) {
-        console.error("Mapbox load error:", err);
-      }
+      L.tileLayer(tileUrl, {
+        maxZoom: 19,
+        subdomains: "abcd",
+      }).addTo(map);
+
+      // Create Layer Groups
+      const layerGroup = L.layerGroup().addTo(map);
+      const routeLayer = L.layerGroup().addTo(map);
+      layerGroupRef.current = layerGroup;
+      routeLayerRef.current = routeLayer;
+
+      // Fix container resize glitches
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize();
+        }
+      }, 200);
     });
 
     return () => {
+      isCancelled = true;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, [mapboxToken, isDarkMode]);
+  }, [isDarkMode]);
 
-  // Automatically resize Mapbox GL canvas when container resizes or mounts
+  // Update Overlays and Markers when activeLayers or pins change
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-    const resizeObserver = new ResizeObserver(() => {
-      if (mapRef.current) {
-        mapRef.current.resize();
-      }
-    });
-    resizeObserver.observe(mapContainerRef.current);
-    return () => resizeObserver.disconnect();
-  }, []);
+    if (typeof window === "undefined" || !mapRef.current || !layerGroupRef.current) return;
 
-  // Configure layers (Traffic heatmap, Flood polygons, Transit route overlays)
-  const setupCustomOverlays = (map: any, mapboxgl: any) => {
-    try {
-      // 1. Traffic Heatmap
-      if (activeLayers.includes("traffic")) {
-        const trafficPoints = {
-          type: "FeatureCollection",
-          features: [
-            { type: "Feature", geometry: { type: "Point", coordinates: [76.3218, 9.9678] }, properties: { intensity: 0.9 } }, // Vytilla
-            { type: "Feature", geometry: { type: "Point", coordinates: [76.3116, 9.9366] }, properties: { intensity: 0.8 } }, // Kundannoor
-            { type: "Feature", geometry: { type: "Point", coordinates: [76.3090, 10.0250] }, properties: { intensity: 0.7 } }, // Edappally
-            { type: "Feature", geometry: { type: "Point", coordinates: [76.2828, 9.9722] }, properties: { intensity: 0.5 } }, // MG Road
-            { type: "Feature", geometry: { type: "Point", coordinates: [76.3120, 10.0076] }, properties: { intensity: 0.6 } }, // Palarivattom
-          ],
-        };
+    import("leaflet").then((leafletModule) => {
+      const L = leafletModule.default ?? leafletModule;
+      const layerGroup = layerGroupRef.current;
+      if (!layerGroup) return;
 
-        if (!map.getSource("traffic-heatmap-src")) {
-          map.addSource("traffic-heatmap-src", {
-            type: "geojson",
-            data: trafficPoints,
-          });
-        }
+      layerGroup.clearLayers();
 
-        if (!map.getLayer("traffic-heatmap-layer")) {
-          map.addLayer({
-            id: "traffic-heatmap-layer",
-            type: "heatmap",
-            source: "traffic-heatmap-src",
-            maxzoom: 15,
-            paint: {
-              "heatmap-weight": ["get", "intensity"],
-              "heatmap-intensity": 2,
-              "heatmap-color": [
-                "interpolate",
-                ["linear"],
-                ["heatmap-value"],
-                0, "rgba(0, 255, 0, 0)",
-                0.3, "rgba(255, 165, 0, 0.4)",
-                0.7, "rgba(255, 69, 0, 0.6)",
-                1.0, "rgba(255, 0, 0, 0.8)"
-              ],
-              "heatmap-radius": 35,
-              "heatmap-opacity": 0.55,
-            },
-          });
-        }
-      }
-
-      // 2. Flood Polygons (Marine Drive & Low Catchments)
+      // 1. Flood Polygons (Marine Drive & Low Catchments)
       if (activeLayers.includes("flood")) {
-        const floodZones = {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [[
-                  [76.270, 9.988],
-                  [76.278, 9.986],
-                  [76.275, 9.975],
-                  [76.268, 9.978],
-                  [76.270, 9.988]
-                ]]
-              },
-              properties: { risk: "high" }
-            },
-            {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [[
-                  [76.308, 9.932],
-                  [76.315, 9.934],
-                  [76.316, 9.928],
-                  [76.309, 9.926],
-                  [76.308, 9.932]
-                ]]
-              },
-              properties: { risk: "medium" }
-            }
-          ]
-        };
+        const marineDrivePolygon: [number, number][] = [
+          [9.988, 76.270],
+          [9.986, 76.278],
+          [9.975, 76.275],
+          [9.978, 76.268],
+        ];
 
-        if (!map.getSource("flood-zones-src")) {
-          map.addSource("flood-zones-src", {
-            type: "geojson",
-            data: floodZones,
-          });
-        }
+        const kundannoorPolygon: [number, number][] = [
+          [9.932, 76.308],
+          [9.934, 76.315],
+          [9.928, 76.316],
+          [9.926, 76.309],
+        ];
 
-        if (!map.getLayer("flood-zones-layer")) {
-          map.addLayer({
-            id: "flood-zones-layer",
-            type: "fill",
-            source: "flood-zones-src",
-            paint: {
-              "fill-color": "#38bdf8",
-              "fill-opacity": 0.35,
-              "fill-outline-color": "#0284c7",
-            },
-          });
-        }
+        L.polygon(marineDrivePolygon, {
+          color: "#0284c7",
+          fillColor: "#38bdf8",
+          fillOpacity: 0.35,
+          weight: 2,
+        }).addTo(layerGroup);
+
+        L.polygon(kundannoorPolygon, {
+          color: "#0284c7",
+          fillColor: "#38bdf8",
+          fillOpacity: 0.3,
+          weight: 2,
+        }).addTo(layerGroup);
       }
 
-      // 3. Transit Overlays (Kochi Metro Line)
+      // 2. Transit Line (Kochi Metro)
       if (activeLayers.includes("transit")) {
-        const metroLine = {
-          type: "Feature",
-          geometry: {
-            type: "LineString",
-            coordinates: [
-              [76.350, 10.080],
-              [76.316, 10.024],
-              [76.299, 10.003],
-              [76.282, 9.972],
-              [76.321, 9.967],
-              [76.345, 9.955],
-            ],
-          },
-        };
+        const metroCoords: [number, number][] = [
+          [10.080, 76.350], // Aluva
+          [10.024, 76.316], // Edappally
+          [10.003, 76.299], // Palarivattom
+          [9.972, 76.282],  // MG Road
+          [9.967, 76.321],  // Vytilla
+          [9.955, 76.345],  // Tripunithura
+        ];
 
-        if (!map.getSource("metro-line-src")) {
-          map.addSource("metro-line-src", {
-            type: "geojson",
-            data: metroLine,
-          });
-        }
-
-        if (!map.getLayer("metro-line-layer")) {
-          map.addLayer({
-            id: "metro-line-layer",
-            type: "line",
-            source: "metro-line-src",
-            paint: {
-              "line-color": "#a855f7",
-              "line-width": 4,
-              "line-opacity": 0.8,
-            },
-          });
-        }
+        L.polyline(metroCoords, {
+          color: "#a855f7",
+          weight: 4,
+          opacity: 0.8,
+          dashArray: "6, 6",
+        }).addTo(layerGroup);
       }
-    } catch (err) {
-      console.warn("Safely caught map overlay setup error:", err);
-    }
-  };
 
-  // Re-draw Markers when incidents list changes
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    import("mapbox-gl").then((m) => {
-      const mapboxgl = m.default ?? m;
-
-      // Remove existing markers
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
-
-      // 1. Add Incident Markers
+      // 3. Add Incident Markers
       displayPins.forEach((p) => {
         const lng = p.lng ?? schematicToLngLat(p.x, p.y)[0];
         const lat = p.lat ?? schematicToLngLat(p.x, p.y)[1];
 
-        const el = document.createElement("div");
-        el.className = "relative flex items-center justify-center cursor-pointer";
-
-        // Style depending on severity
         const colorClass =
           p.severity === "critical"
-            ? "bg-destructive shadow-destructive/50"
+            ? "bg-destructive"
             : p.severity === "warning"
-              ? "bg-warn shadow-warn/50"
+              ? "bg-warn"
               : p.severity === "resolved"
-                ? "bg-success shadow-success/50"
-                : "bg-primary shadow-primary/50";
+                ? "bg-success"
+                : "bg-primary";
 
-        // Animated pulse for critical / warnings
         const isPulse = p.severity === "critical" || p.severity === "warning";
 
-        el.innerHTML = `
-          <span class="relative flex h-4 w-4">
-            ${isPulse ? `<span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${colorClass}"></span>` : ""}
-            <span class="relative inline-flex rounded-full h-4 w-4 border-2 border-white dark:border-black ${colorClass}"></span>
-          </span>
+        const html = `
+          <div class="relative flex items-center justify-center cursor-pointer">
+            <span class="relative flex h-5 w-5">
+              ${isPulse ? `<span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${colorClass}"></span>` : ""}
+              <span class="relative inline-flex rounded-full h-5 w-5 border-2 border-white dark:border-black ${colorClass} shadow-md"></span>
+            </span>
+          </div>
         `;
 
-        el.addEventListener("click", () => {
+        const icon = L.divIcon({
+          html,
+          className: "custom-div-icon",
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        });
+
+        const marker = L.marker([lat, lng], { icon }).addTo(layerGroup);
+
+        marker.on("click", () => {
           setSelectedIncident(p);
           setSelectedCctv(null);
           setShowAiExplanation(false);
-
-          map.easeTo({
-            center: [lng, lat],
-            zoom: 14.5,
-            duration: 800,
-          });
+          mapRef.current?.flyTo([lat, lng], 14, { duration: 0.8 });
         });
-
-        const marker = new mapboxgl.Marker({ element: el })
-          .setLngLat([lng, lat])
-          .addTo(map);
-
-        markersRef.current.push(marker);
       });
 
-      // 2. Add CCTV Camera Markers (if layer active)
+      // 4. CCTV Cameras (if active)
       if (activeLayers.includes("cctv")) {
         const cctvFeeds = [
           { id: "CAM-14", location: "Vytilla Junction", lng: 76.3218, lat: 9.9678, status: "alert" },
@@ -387,355 +245,199 @@ export function CityMap({
         ];
 
         cctvFeeds.forEach((cam) => {
-          const el = document.createElement("div");
-          el.className = cn(
-            "grid size-7 place-items-center rounded-lg border border-border cursor-pointer shadow-lg transition-transform hover:scale-110",
-            cam.status === "critical" ? "bg-destructive text-white" : cam.status === "alert" ? "bg-warn text-white" : "bg-card text-foreground"
-          );
-          el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>`;
+          const bgClass =
+            cam.status === "critical"
+              ? "bg-destructive text-white"
+              : cam.status === "alert"
+                ? "bg-warn text-white"
+                : "bg-primary text-primary-foreground";
 
-          el.addEventListener("click", () => {
-            setSelectedCctv(cam);
-            setSelectedIncident(null);
-            map.easeTo({
-              center: [cam.lng, cam.lat],
-              zoom: 14.5,
-              duration: 800,
-            });
+          const html = `
+            <div class="grid size-7 place-items-center rounded-lg border border-white dark:border-black ${bgClass} shadow-lg cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+            </div>
+          `;
+
+          const icon = L.divIcon({
+            html,
+            className: "custom-cctv-icon",
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
           });
 
-          const marker = new mapboxgl.Marker({ element: el })
-            .setLngLat([cam.lng, cam.lat])
-            .addTo(map);
+          const marker = L.marker([cam.lat, cam.lng], { icon }).addTo(layerGroup);
 
-          markersRef.current.push(marker);
+          marker.on("click", () => {
+            setSelectedCctv(cam);
+            setSelectedIncident(null);
+            mapRef.current?.flyTo([cam.lat, cam.lng], 14, { duration: 0.8 });
+          });
         });
       }
     });
   }, [displayPins, activeLayers]);
 
-  // Handle routing (directions API + OSRM fallback)
+  // Handle Routing (OSRM Driving directions API)
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    if (typeof window === "undefined" || !mapRef.current || !routeLayerRef.current) return;
 
-    if (!routingMode || !startLocation || !endLocation) {
-      // Remove route paths from map if routing mode is off
-      try {
-        if (map.getLayer("route-line")) map.removeLayer("route-line");
-        if (map.getLayer("route-traffic-flow")) map.removeLayer("route-traffic-flow");
-        if (map.getSource("route-src")) map.removeSource("route-src");
-      } catch {}
-      setRouteInfo(null);
-      setAmbulancePos(null);
-      return;
-    }
+    import("leaflet").then((leafletModule) => {
+      const L = leafletModule.default ?? leafletModule;
+      const routeLayer = routeLayerRef.current;
+      if (!routeLayer) return;
 
-    // Fetch routing geometry from OSRM (OpenSource Routing Machine) which requires NO token
-    const fetchRoute = async () => {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${startLocation.lng},${startLocation.lat};${endLocation.lng},${endLocation.lat}?overview=full&geometries=geojson&steps=true`;
-        const res = await fetch(url);
-        const data = await res.json();
+      routeLayer.clearLayers();
 
-        if (data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
-          const coords = route.geometry.coordinates as [number, number][];
-          
-          const distanceKm = +(route.distance / 1000).toFixed(1);
-          // green corridor makes emergency vehicles save ~30% time
-          const baseDuration = Math.round(route.duration / 60);
-          const durationMin = greenCorridorActive ? Math.round(baseDuration * 0.7) : baseDuration;
-          const timeSavedMin = greenCorridorActive ? Math.round(baseDuration * 0.3) : 0;
-
-          setRouteInfo({
-            distanceKm,
-            durationMin,
-            timeSavedMin,
-            geometry: coords,
-          });
-
-          // Draw the route geometry on map safely
-          try {
-            if (map.getLayer("route-line")) map.removeLayer("route-line");
-            if (map.getLayer("route-traffic-flow")) map.removeLayer("route-traffic-flow");
-            if (map.getSource("route-src")) map.removeSource("route-src");
-
-            map.addSource("route-src", {
-              type: "geojson",
-              data: {
-                type: "Feature",
-                properties: {},
-                geometry: route.geometry,
-              },
-            });
-
-            // Main route drawing (like Google Maps)
-            map.addLayer({
-              id: "route-line",
-              type: "line",
-              source: "route-src",
-              layout: {
-                "line-join": "round",
-                "line-cap": "round",
-              },
-              paint: {
-                "line-color": greenCorridorActive ? "#10b981" : "#3b82f6", // Green for emergency path / Blue for normal path
-                "line-width": 7,
-                "line-opacity": 0.85,
-              },
-            });
-          } catch (routeErr) {
-            console.warn("Route drawing safely caught error:", routeErr);
-          }
-
-          // Zoom and Pan to fit the route bounds
-          import("mapbox-gl").then((m) => {
-            const mapboxgl = m.default ?? m;
-            const bounds = coords.reduce((acc, coord) => {
-              return acc.extend(coord);
-            }, new mapboxgl.LngLatBounds(coords[0], coords[0]));
-
-            map.fitBounds(bounds, {
-              padding: 50,
-              duration: 1200,
-            });
-          });
-
-          // Start route animation for Ambulance
-          animateAmbulance(coords);
-        }
-      } catch (err) {
-        console.error("Routing error:", err);
+      if (!routingMode || !startLocation || !endLocation) {
+        setRouteInfo(null);
+        return;
       }
-    };
 
-    fetchRoute();
+      const fetchRoute = async () => {
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${startLocation.lng},${startLocation.lat};${endLocation.lng},${endLocation.lat}?overview=full&geometries=geojson`;
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            const coords = route.geometry.coordinates as [number, number][];
+            const latLngs: [number, number][] = coords.map(([lng, lat]) => [lat, lng]);
+
+            const distanceKm = +(route.distance / 1000).toFixed(1);
+            const baseDuration = Math.round(route.duration / 60);
+            const durationMin = greenCorridorActive ? Math.round(baseDuration * 0.7) : baseDuration;
+            const timeSavedMin = greenCorridorActive ? Math.round(baseDuration * 0.3) : 0;
+
+            setRouteInfo({
+              distanceKm,
+              durationMin,
+              timeSavedMin,
+              geometry: coords,
+            });
+
+            // Draw route polyline on Leaflet map
+            const polyline = L.polyline(latLngs, {
+              color: greenCorridorActive ? "#10b981" : "#3b82f6",
+              weight: 6,
+              opacity: 0.85,
+            }).addTo(routeLayer);
+
+            // Fit map bounds around route
+            mapRef.current?.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+          }
+        } catch (err) {
+          console.error("OSRM Route fetching error:", err);
+        }
+      };
+
+      fetchRoute();
+    });
   }, [routingMode, startLocation, endLocation, greenCorridorActive]);
 
-  // Ambulance moving animation along route
-  const animateAmbulance = (coords: [number, number][]) => {
-    if (coords.length < 2) return;
-    
-    let index = 0;
-    const animationSpeed = 2; // skip indices to animate speed
-
-    const interval = setInterval(() => {
-      if (index >= coords.length) {
-        index = 0; // Loop route animation
-      }
-      
-      const current = coords[index];
-      const next = coords[Math.min(index + 1, coords.length - 1)];
-      
-      // Calculate angle for heading orientation
-      const dx = next[0] - current[0];
-      const dy = next[1] - current[1];
-      const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-
-      setAmbulancePos(current);
-      setAmbulanceAngle(angle);
-
-      index += animationSpeed;
-    }, 150);
-
-    return () => clearInterval(interval);
-  };
-
   return (
-    <div className={cn("relative overflow-hidden rounded-3xl bg-porcelain h-full w-full min-h-[480px]", className)} style={{ height: typeof height === 'number' ? `${height}px` : height }}>
-      {/* Mapbox container */}
-      <div ref={mapContainerRef} className="h-full w-full min-h-[480px]" />
+    <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm", className)}>
+      <div ref={mapContainerRef} style={{ height, width: "100%" }} className="z-0" />
 
-      {/* Floating Ambulance Marker when route active */}
-      {routingMode && ambulancePos && mapRef.current && (
-        <AmbulanceMapMarker map={mapRef.current} pos={ambulancePos} angle={ambulanceAngle} />
-      )}
-
-      {/* Glassmorphic POPUP Details Panel - Incidents */}
+      {/* Selected Incident Popup Panel */}
       {selectedIncident && (
-        <div className="glass soft-ring absolute bottom-4 left-4 right-4 z-40 max-w-sm rounded-3xl p-4 shadow-2xl animate-rise md:bottom-auto md:top-4 md:right-auto">
-          <div className="flex items-start justify-between">
+        <div className="absolute bottom-4 left-4 right-4 z-20 max-w-md rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 lg:left-4 lg:right-auto">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <span className={cn(
-                "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white",
-                selectedIncident.severity === "critical" ? "bg-destructive" : selectedIncident.severity === "warning" ? "bg-warn" : "bg-primary"
-              )}>
-                {selectedIncident.severity}
-              </span>
-              <h3 className="mt-1 font-display text-base font-semibold">{selectedIncident.title}</h3>
-              <p className="text-xs text-muted-foreground">{selectedIncident.location}</p>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground text-sm">{selectedIncident.title}</span>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                    selectedIncident.severity === "critical"
+                      ? "bg-destructive/20 text-destructive"
+                      : selectedIncident.severity === "warning"
+                        ? "bg-warn/20 text-warn"
+                        : "bg-success/20 text-success"
+                  )}
+                >
+                  {selectedIncident.severity}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {selectedIncident.location} · {selectedIncident.department} · {selectedIncident.minutesAgo}m ago
+              </p>
             </div>
             <button
               onClick={() => setSelectedIncident(null)}
-              className="grid size-6 place-items-center rounded-full bg-secondary hover:bg-muted"
+              className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              ✕
             </button>
           </div>
 
-          <div className="mt-3 space-y-2 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Confidence:</span>
-              <span className="font-mono font-medium">{selectedIncident.confidence}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Department:</span>
-              <span className="font-medium">{selectedIncident.department}</span>
-            </div>
-            <div className="rounded-xl bg-secondary/70 p-2.5">
-              <p className="font-semibold text-foreground uppercase tracking-wider text-[9px]">Recommended AI Action</p>
-              <p className="mt-0.5 text-muted-foreground">
-                {selectedIncident.severity === "critical"
-                  ? "Deploy immediate emergency unit with active signal override (Green Corridor) via SA Road."
-                  : "Dispatch civic field team. Alert local traffic authorities."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 flex gap-2">
+          <div className="mt-3 flex items-center gap-2">
             <button
-              onClick={() => {
-                resolveIncident(selectedIncident.id);
-                setSelectedIncident(null);
-              }}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-success text-white py-2 text-xs font-semibold hover:brightness-110"
+              onClick={() => resolveIncident(selectedIncident.id)}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-success px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-90"
             >
               <CheckCircle className="size-3.5" />
               Resolve Incident
             </button>
             <button
               onClick={() => setShowAiExplanation(!showAiExplanation)}
-              className="flex-1 rounded-xl border border-border bg-card py-2 text-xs font-semibold hover:bg-secondary"
+              className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
             >
-              AI Explanation
+              <Zap className="size-3.5 text-primary" />
+              {showAiExplanation ? "Hide AI Logic" : "AI Explain"}
             </button>
           </div>
 
           {showAiExplanation && (
-            <div className="mt-3 border-t border-border pt-2 text-[11px] text-muted-foreground leading-relaxed animate-rise">
-              <strong>Multi-Agent Reasoning:</strong> CCTV-Vision Agent flagged anomaly with 97% confidence matching high congestion telemetry at {selectedIncident.location}. Master Agent resolved route prioritization & recommended dispatch.
+            <div className="mt-3 rounded-xl bg-secondary/80 p-3 text-xs text-muted-foreground animate-in fade-in">
+              <p className="font-semibold text-foreground">AI Dispatch Logic:</p>
+              <p className="mt-1">
+                Detected high-severity anomaly from CCTV sensors. Rerouted nearest municipal unit and prioritized signal phase clearing.
+              </p>
             </div>
           )}
         </div>
       )}
 
-      {/* CCTV Live Feed Popup */}
+      {/* Selected CCTV Popup Panel */}
       {selectedCctv && (
-        <div className="glass soft-ring absolute bottom-4 left-4 right-4 z-40 max-w-sm rounded-3xl p-4 shadow-2xl animate-rise md:bottom-auto md:top-4 md:right-auto">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold">
-              <Video className="size-4 text-primary" />
-              {selectedCctv.id} · {selectedCctv.location}
+        <div className="absolute bottom-4 left-4 right-4 z-20 max-w-md rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 lg:left-4 lg:right-auto">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Video className="size-4 text-primary" />
+                <span className="font-semibold text-foreground text-sm">{selectedCctv.id} · {selectedCctv.location}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Vision AI Stream · Active Object Detection</p>
             </div>
             <button
               onClick={() => setSelectedCctv(null)}
-              className="grid size-6 place-items-center rounded-full bg-secondary hover:bg-muted"
+              className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              ✕
             </button>
-          </div>
-          <div className="relative mt-3 aspect-video overflow-hidden rounded-2xl bg-black">
-            {/* Simulated Live Scanline Video */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.4))] pointer-events-none" />
-            <div className="absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-[8px] font-mono text-red-500 uppercase tracking-widest flex items-center gap-1">
-              <span className="size-1.5 animate-pulse rounded-full bg-red-600" />
-              Live Feed
-            </div>
-            {/* Display CCTV status overlays */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3 text-white/90">
-              <Eye className="size-6 text-primary mb-1 animate-pulse" />
-              <p className="text-xs font-semibold uppercase tracking-wider">Vision AI Processing</p>
-              <p className="text-[10px] text-muted-foreground/80 mt-0.5 font-mono">
-                Detections: {selectedCctv.status === "critical" ? "Overturned Truck (96% Confidence)" : "Normal vehicle flow"}
-              </p>
-            </div>
           </div>
         </div>
       )}
 
-      {/* Floating Navigation Routing Card (Google Maps style) */}
+      {/* Routing Info Overlay Badge */}
       {routingMode && routeInfo && (
-        <div className="glass soft-ring absolute bottom-4 right-4 z-40 max-w-sm rounded-3xl p-4 shadow-2xl animate-rise">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary">
-              <Navigation className="size-3.5" />
-              Emergency Navigation
-            </h4>
-            {greenCorridorActive && (
-              <span className="flex items-center gap-0.5 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-semibold text-success">
-                <Zap className="size-2.5" />
-                Green Corridor
-              </span>
-            )}
-          </div>
-          
-          <div className="mt-3 grid grid-cols-2 gap-3 text-center">
-            <div className="rounded-2xl border border-border bg-secondary/40 p-2">
-              <span className="text-[10px] font-medium text-muted-foreground">ETA</span>
-              <p className="font-display text-lg font-bold text-foreground">{routeInfo.durationMin} mins</p>
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-3 rounded-2xl border border-border bg-card/90 px-4 py-2.5 shadow-lg backdrop-blur-md">
+          <Navigation className="size-4 text-primary animate-pulse" />
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              <span>{routeInfo.distanceKm} km</span>
+              <span>•</span>
+              <span className="text-success">{routeInfo.durationMin} mins</span>
+              {routeInfo.timeSavedMin > 0 && (
+                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] text-success font-medium">
+                  -{routeInfo.timeSavedMin}m Green Corridor
+                </span>
+              )}
             </div>
-            <div className="rounded-2xl border border-border bg-secondary/40 p-2">
-              <span className="text-[10px] font-medium text-muted-foreground">Distance</span>
-              <p className="font-display text-lg font-bold text-foreground">{routeInfo.distanceKm} km</p>
-            </div>
-          </div>
-
-          {greenCorridorActive && routeInfo.timeSavedMin > 0 && (
-            <div className="mt-2.5 flex items-center justify-between rounded-xl bg-success/10 px-3 py-2 text-xs text-success">
-              <span>Time saved via Priority Signals:</span>
-              <span className="font-bold font-mono">-{routeInfo.timeSavedMin} mins</span>
-            </div>
-          )}
-
-          <div className="mt-3 rounded-2xl bg-secondary/80 p-3 text-[11px] text-muted-foreground">
-            <div className="font-semibold text-foreground mb-1 uppercase tracking-wider text-[9px]">Recommended AI Operations:</div>
-            • Priority override holds signals at Vytilla & Palarivattom intersections.<br/>
-            • Rerouted local civilian traffic via NH-66 bypass.
           </div>
         </div>
       )}
     </div>
   );
-}
-
-// Separate Mini Marker Render for Ambulance (moves along route coords)
-function AmbulanceMapMarker({ map, pos, angle }: { map: any; pos: [number, number]; angle: number }) {
-  const markerRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!map || !pos) return;
-
-    import("mapbox-gl").then((m) => {
-      const mapboxgl = m.default ?? m;
-
-      const el = document.createElement("div");
-      el.className = "grid size-8 place-items-center rounded-full bg-destructive border-2 border-white shadow-2xl text-white";
-      el.style.transform = `rotate(${angle}deg)`;
-      el.style.transition = "transform 0.15s ease-out";
-      
-      // Ambulance Icon SVG
-      el.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse">
-          <path d="M14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/>
-          <circle cx="7" cy="18" r="2"/>
-          <circle cx="17" cy="18" r="2"/>
-          <path d="M15 13H9"/>
-          <path d="M12 10v6"/>
-        </svg>
-      `;
-
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat(pos)
-        .addTo(map);
-
-      markerRef.current = marker;
-    });
-
-    return () => {
-      if (markerRef.current) markerRef.current.remove();
-    };
-  }, [map, pos, angle]);
-
-  return null;
 }
