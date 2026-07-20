@@ -108,13 +108,13 @@ function FloodPage() {
             <SectionHeader title="Rainfall · next 12h" hint="mm / hour · forecast" />
             
             <div className="mt-4 pt-4 border-t border-border">
-              <div className="flex h-44 items-end gap-1.5 px-1">
+              <div className="flex h-44 items-end gap-1 px-0.5">
                 {rainfallHourly.map((v, i) => {
                   const heightPercent = Math.max(12, Math.round((v / maxRainfall) * 100));
                   return (
-                    <div key={i} className="flex h-full flex-1 flex-col justify-end items-center gap-1.5 group">
-                      <span className="text-[9px] font-mono text-muted-foreground group-hover:text-primary transition-colors">
-                        {v}mm
+                    <div key={i} className="flex h-full flex-1 flex-col justify-end items-center gap-1 group">
+                      <span className="text-[8px] sm:text-[9px] font-mono font-semibold text-muted-foreground group-hover:text-cyan-400 transition-colors leading-none tracking-tighter">
+                        {v}
                       </span>
                       <div className="w-full h-32 bg-secondary/50 rounded-t-lg overflow-hidden flex items-end p-0.5 border border-border/40">
                         <div

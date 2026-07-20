@@ -31,20 +31,63 @@ function SimulatePage() {
   const [evtWeather, setEvtWeather] = useState("Clear");
   const [simRunning, setSimRunning] = useState(false);
   const [simCompleted, setSimCompleted] = useState(false);
+  const [geminiSimReport, setGeminiSimReport] = useState<string | null>(null);
 
   // What-If Scenario simulation state (original)
   const [selectedScenario, setSelectedScenario] = useState("truck");
   const [whatifRunning, setWhatifRunning] = useState(false);
   const [whatifRan, setWhatifRan] = useState(false);
 
-  const runEventSimulation = () => {
+  const handleSelectPreset = (name: string) => {
+    setEvtName(name);
+    setGeminiSimReport(null);
+    if (name.includes("Metro Rush")) {
+      setEvtAttendance(8500);
+      setEvtWeather("Clear");
+    } else if (name.includes("Monsoon")) {
+      setEvtAttendance(45000);
+      setEvtWeather("Heavy rain");
+    } else if (name.includes("Vytilla Mobility")) {
+      setEvtAttendance(35000);
+      setEvtWeather("Light rain");
+    } else if (name.includes("Lulu Mall")) {
+      setEvtAttendance(50000);
+    } else if (name.includes("Concert")) {
+      setEvtAttendance(18000);
+    } else if (name.includes("Marathon")) {
+      setEvtAttendance(12000);
+    } else {
+      setEvtAttendance(28000);
+    }
+  };
+
+  const runEventSimulation = async () => {
     setSimRunning(true);
     setSimCompleted(false);
-    setTimeout(() => {
-      setSimRunning(false);
-      setSimCompleted(true);
-      toast.success("Event impact simulation completed!");
-    }, 1500);
+
+    const prompt = `Simulate urban mobility impact in Kochi for event: "${evtName}" with expected attendance of ${evtAttendance.toLocaleString()} people under weather condition "${evtWeather}". Calculate delay increase, extra transit frequency needed, and police officer deployment.`;
+
+    if (apiConfig.gemini.isConfigured) {
+      try {
+        const reply = await generateGeminiResponse(prompt);
+        setGeminiSimReport(reply);
+        toast.success("Gemini Event Simulation Completed!", {
+          description: `Dynamic mobility impact calculated for ${evtName}.`,
+        });
+      } catch (err) {
+        console.error("Gemini sim error:", err);
+        toast.success("Event impact simulation completed!");
+      } finally {
+        setSimRunning(false);
+        setSimCompleted(true);
+      }
+    } else {
+      setTimeout(() => {
+        setSimRunning(false);
+        setSimCompleted(true);
+        toast.success("Event impact simulation completed!");
+      }, 1200);
+    }
   };
 
   const runWhatifSimulation = () => {
@@ -123,12 +166,16 @@ function SimulatePage() {
                 <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Planned Event</label>
                 <select
                   value={evtName}
-                  onChange={(e) => setEvtName(e.target.value)}
-                  className="w-full rounded-xl border border-border/45 bg-secondary/75 px-3.5 py-2.5 text-xs text-foreground outline-none focus:border-primary transition-colors"
+                  onChange={(e) => handleSelectPreset(e.target.value)}
+                  className="w-full rounded-xl border border-border/45 bg-secondary/75 px-3.5 py-2.5 text-xs text-foreground outline-none focus:border-primary transition-colors font-medium"
                 >
+                  <option value="Metro Rush Surge · Edappally (500+ passengers)">Metro Rush Surge · Edappally (500+ passengers)</option>
                   <option value="ISL Football Match · Jawaharlal Nehru Stadium">ISL Football Match · JLN Stadium</option>
+                  <option value="Heavy Monsoon Cloudburst · Ernakulam City">Heavy Monsoon Cloudburst · Ernakulam City</option>
+                  <option value="Vytilla Mobility Hub Peak Rush Hour">Vytilla Mobility Hub Peak Rush Hour</option>
                   <option value="Concert · Marine Drive Grounds">Concert · Marine Drive Grounds</option>
                   <option value="Lulu Mall Anniversary Sale · Edappally">Lulu Mall Anniversary Sale · Edappally</option>
+                  <option value="Cochin Carnival Parade · Fort Kochi">Cochin Carnival Parade · Fort Kochi</option>
                   <option value="Marathon · MG Road stretch">Marathon · MG Road stretch</option>
                 </select>
               </div>
@@ -223,6 +270,17 @@ function SimulatePage() {
 
               {simCompleted && !simRunning && (
                 <div className="space-y-4 animate-rise">
+                  {/* Gemini AI Simulation Mobility Impact Report */}
+                  {geminiSimReport && (
+                    <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                        <Sparkles className="size-4" />
+                        <span>Gemini AI Mobility Impact Evaluation ({evtName}):</span>
+                      </div>
+                      <p className="text-xs text-foreground leading-relaxed">{geminiSimReport}</p>
+                    </div>
+                  )}
+
                   {/* KPI Grid */}
                   <div className="grid grid-2 sm:grid-cols-4 gap-4">
                     <KPIComponent
