@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { GlassCard, LiveBadge, SeverityChip } from "@/components/ui-kit";
 import { cctvFeeds, CctvFeed } from "@/data/kochi";
 import { cn } from "@/lib/utils";
-import { Video, Activity, Layers, Hash } from "lucide-react";
+import { Video, Activity, Hash, Radio } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiConfig } from "@/config/api";
 
@@ -19,14 +19,12 @@ export const Route = createFileRoute("/cctv")({
   component: CctvPage,
 });
 
-// High-Definition Hikvision & Sysvideo 4K Traffic Analysis Video Feeds
-const feedVideos: Record<string, string[]> = {
-  "CAM-14": ["/cctv-feed-1.mp4", "/cctv-feed-2.mp4"],
-  "CAM-22": ["/cctv-feed-2.mp4", "/cctv-feed-1.mp4"],
-  "CAM-09": ["/cctv-feed-1.mp4#t=4", "/cctv-feed-2.mp4#t=2"],
-  "CAM-31": ["/cctv-feed-2.mp4#t=5", "/cctv-feed-1.mp4#t=5"],
-  "CAM-18": ["/cctv-feed-1.mp4#t=8", "/cctv-feed-2.mp4#t=7"],
-  "CAM-07": ["/cctv-feed-2.mp4#t=9", "/cctv-feed-1.mp4#t=10"],
+// User provided 2 HD Traffic CCTV Video Feeds:
+// CAM-14 (Vytilla Junction) -> Video 1
+// CAM-09 (Kundannoor) -> Video 2
+const feedVideos: Record<string, string> = {
+  "CAM-14": "/cctv-feed-1.mp4",
+  "CAM-09": "/cctv-feed-2.mp4",
 };
 
 interface DetectionBox {
@@ -44,7 +42,6 @@ function CctvFeedCard({ feed }: { feed: CctvFeed }) {
   const [detections, setDetections] = useState<DetectionBox[]>([]);
   const [passedCount, setPassedCount] = useState(feed.vehicleCount || 140);
   const [justPassed, setJustPassed] = useState(false);
-  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     // Initialize standard bounding boxes based on the feed type
@@ -132,7 +129,7 @@ function CctvFeedCard({ feed }: { feed: CctvFeed }) {
     return () => clearInterval(countTimer);
   }, []);
 
-  const videoSources = feedVideos[feed.id] || feedVideos["CAM-14"];
+  const videoUrl = feedVideos[feed.id];
 
   // Compute real-time object count and breakdown from active Vision AI detections
   const countsByLabel: Record<string, number> = {};
@@ -150,36 +147,44 @@ function CctvFeedCard({ feed }: { feed: CctvFeed }) {
   return (
     <GlassCard className="!p-0 overflow-hidden group">
       <div className="relative aspect-video overflow-hidden bg-slate-950">
-        {/* HTML5 Video Stream with Automatic Backup Fallback */}
-        {!videoError ? (
+        {/* Render Video ONLY for Vytilla (CAM-14) and Kundannoor (CAM-09) */}
+        {videoUrl ? (
           <video
+            src={videoUrl}
             autoPlay
             loop
             muted
             playsInline
-            onError={() => setVideoError(true)}
             onLoadedMetadata={(e) => {
-              if (feed.id === "CAM-18") {
-                e.currentTarget.playbackRate = 0.2;
-              } else if (feed.id === "CAM-14") {
-                e.currentTarget.playbackRate = 0.4;
+              if (feed.id === "CAM-14") {
+                e.currentTarget.playbackRate = 0.5; // Smooth traffic flow
               } else {
                 e.currentTarget.playbackRate = 1.0;
               }
             }}
-            className="absolute inset-0 h-full w-full object-cover opacity-85 select-none pointer-events-none"
-          >
-            <source src={videoSources[0]} type="video/mp4" />
-            <source src={videoSources[1]} type="video/mp4" />
-          </video>
+            className="absolute inset-0 h-full w-full object-cover opacity-90 select-none pointer-events-none"
+          />
         ) : (
-          /* Animated Futuristic High-Tech CCTV Grid Canvas Background */
-          <div className="absolute inset-0 bg-slate-900 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-90" />
+          /* Sleek High-Tech Dark Synthetic Radar Scan Grid for Other 4 Cameras */
+          <div className="absolute inset-0 bg-slate-950 flex flex-col justify-center items-center">
+            {/* Grid Scan Pattern */}
+            <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900/60 to-slate-950" />
+            
+            {/* Radar Sweep Line Effect */}
+            <div className="absolute inset-0 opacity-25 bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(16,185,129,0.4)_360deg)] animate-[spin_8s_linear_infinite] origin-center rounded-full scale-150" />
+            
+            {/* Synthetic Vision Badge */}
+            <div className="z-10 flex items-center gap-1.5 rounded-full bg-slate-900/80 border border-slate-700/60 px-2.5 py-1 text-[10px] font-mono text-slate-300 backdrop-blur-md">
+              <Radio className="size-3 text-emerald-400 animate-pulse" />
+              <span>SYNTHETIC VISION SCAN</span>
+            </div>
+          </div>
         )}
 
-        {/* Ambient Dark overlay and Grid Scanlines */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.35)_100%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-repeat bg-center opacity-[0.05] pointer-events-none select-none" style={{ backgroundImage: "linear-gradient(rgba(18, 24, 38, 0) 50%, rgba(18, 24, 38, 1) 50%), linear-gradient(90deg, rgba(18, 24, 38, 0) 50%, rgba(18, 24, 38, 1) 50%)", backgroundSize: "4px 4px" }} />
+        {/* Ambient Dark Overlay & Grid Scanlines */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.4)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-repeat bg-center opacity-[0.06] pointer-events-none select-none" style={{ backgroundImage: "linear-gradient(rgba(18, 24, 38, 0) 50%, rgba(18, 24, 38, 1) 50%), linear-gradient(90deg, rgba(18, 24, 38, 0) 50%, rgba(18, 24, 38, 1) 50%)", backgroundSize: "4px 4px" }} />
 
         {/* AI COUNTING TRIPWIRE OVERLAY */}
         <div className="absolute top-[65%] inset-x-0 h-0.5 border-b-2 border-dashed border-emerald-400/60 pointer-events-none flex items-center justify-between px-3">
@@ -257,12 +262,12 @@ function CctvFeedCard({ feed }: { feed: CctvFeed }) {
         </div>
 
         {/* Camera Info HUD Overlay */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 flex items-end justify-between pointer-events-none">
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 flex items-end justify-between pointer-events-none">
           <div className="flex items-center gap-2">
             <span className="rounded bg-black/70 border border-white/10 px-1.5 py-0.5 font-mono text-[9px] text-white">
               {feed.id}
             </span>
-            <LiveBadge label="REC" />
+            <LiveBadge label={videoUrl ? "REC" : "RADAR"} />
           </div>
           <Video className="size-4 text-white/80 animate-pulse" />
         </div>
