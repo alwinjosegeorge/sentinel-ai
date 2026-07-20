@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { GlassCard, SectionHeader, SeverityChip } from "@/components/ui-kit";
 import { floodAreas as initialFloodAreas, rainfallHourly } from "@/data/kochi";
@@ -81,14 +81,25 @@ function FloodPage() {
             </p>
           </div>
 
-          <Button
-            onClick={handleGeminiFloodAnalysis}
-            disabled={isAnalyzing}
-            className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-md cursor-pointer self-start sm:self-center"
-          >
-            <Sparkles className={cn("size-4", isAnalyzing && "animate-spin")} />
-            {isAnalyzing ? "Analyzing Catchment..." : "Run AI Flood Risk Analysis"}
-          </Button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex bg-secondary/80 border border-border/40 p-1 rounded-xl">
+              <Link to="/flood" className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-card text-foreground shadow-xs">
+                Flood Prediction
+              </Link>
+              <Link to="/simulate" className="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground">
+                Event Simulation ⚡
+              </Link>
+            </div>
+
+            <Button
+              onClick={handleGeminiFloodAnalysis}
+              disabled={isAnalyzing}
+              className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-md cursor-pointer"
+            >
+              <Sparkles className={cn("size-4", isAnalyzing && "animate-spin")} />
+              {isAnalyzing ? "Analyzing Catchment..." : "Run AI Flood Risk Analysis"}
+            </Button>
+          </div>
         </div>
 
         {/* Gemini AI Flood Risk Analysis Banner */}

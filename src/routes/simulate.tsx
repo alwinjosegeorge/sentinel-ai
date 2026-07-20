@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { GlassCard, SectionHeader } from "@/components/ui-kit";
 import { AgentReasoningStream } from "@/components/agent-reasoning-stream";
@@ -121,33 +121,44 @@ function SimulatePage() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Predict · 04.b</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground font-mono">Predict · 04.b</p>
             <h1 className="font-display text-3xl font-semibold tracking-tight">Event Simulation</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Evaluate event mobility impacts or run dynamic multi-agent what-if disaster models.
             </p>
           </div>
 
-          {/* Tabs Control */}
-          <div className="flex bg-secondary/80 border border-border/40 p-1 rounded-xl self-start md:self-center">
-            <button
-              onClick={() => setActiveTab("event")}
-              className={cn(
-                "px-4 py-2 text-xs font-semibold rounded-lg transition-all",
-                activeTab === "event" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Planned Event Simulator
-            </button>
-            <button
-              onClick={() => setActiveTab("whatif")}
-              className={cn(
-                "px-4 py-2 text-xs font-semibold rounded-lg transition-all",
-                activeTab === "whatif" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              What-If Agent Simulator
-            </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex bg-secondary/80 border border-border/40 p-1 rounded-xl">
+              <Link to="/flood" className="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground">
+                Flood Prediction
+              </Link>
+              <Link to="/simulate" className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-card text-foreground shadow-xs">
+                Event Simulation ⚡
+              </Link>
+            </div>
+
+            {/* Tabs Control */}
+            <div className="flex bg-secondary/80 border border-border/40 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab("event")}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all",
+                  activeTab === "event" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Planned Event
+              </button>
+              <button
+                onClick={() => setActiveTab("whatif")}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all",
+                  activeTab === "whatif" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                What-If Agent
+              </button>
+            </div>
           </div>
         </div>
 

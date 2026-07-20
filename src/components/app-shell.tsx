@@ -232,7 +232,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <nav className="space-y-4" onClick={() => setMobileOpen(false)}>
               {stages.map((stage, i) => (
-                <StageGroup key={stage.key} stage={stage} active={active} step={i + 1} />
+                <StageGroup key={stage.key} stage={stage} active={active} step={i + 1} forceExpand />
               ))}
               <div>
                 <p className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -276,10 +276,12 @@ function StageGroup({
   stage,
   active,
   step,
+  forceExpand = false,
 }: {
   stage: Stage;
   active: { stage: string; path: string };
   step: number;
+  forceExpand?: boolean;
 }) {
   const isActive = active.stage === stage.key;
   return (
@@ -301,7 +303,7 @@ function StageGroup({
         </span>
         <span className="flex-1">{stage.label}</span>
       </Link>
-      {isActive && stage.children.length > 0 && (
+      {(isActive || forceExpand) && stage.children.length > 0 && (
         <div className="mt-1 space-y-0.5 border-l border-border pl-3 ml-6">
           {stage.children.map((child) => (
             <SidebarLink
