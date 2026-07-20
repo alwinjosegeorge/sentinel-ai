@@ -172,134 +172,148 @@ export function CityMap({
 
   // Configure layers (Traffic heatmap, Flood polygons, Transit route overlays)
   const setupCustomOverlays = (map: any, mapboxgl: any) => {
-    // 1. Traffic Heatmap
-    if (activeLayers.includes("traffic")) {
-      const trafficPoints = {
-        type: "FeatureCollection",
-        features: [
-          { type: "Feature", geometry: { type: "Point", coordinates: [76.3218, 9.9678] }, properties: { intensity: 0.9 } }, // Vytilla
-          { type: "Feature", geometry: { type: "Point", coordinates: [76.3116, 9.9366] }, properties: { intensity: 0.8 } }, // Kundannoor
-          { type: "Feature", geometry: { type: "Point", coordinates: [76.3090, 10.0250] }, properties: { intensity: 0.7 } }, // Edappally
-          { type: "Feature", geometry: { type: "Point", coordinates: [76.2828, 9.9722] }, properties: { intensity: 0.5 } }, // MG Road
-          { type: "Feature", geometry: { type: "Point", coordinates: [76.3120, 10.0076] }, properties: { intensity: 0.6 } }, // Palarivattom
-        ],
-      };
-
-      map.addSource("traffic-heatmap-src", {
-        type: "geojson",
-        data: trafficPoints,
-      });
-
-      map.addLayer({
-        id: "traffic-heatmap-layer",
-        type: "heatmap",
-        source: "traffic-heatmap-src",
-        maxzoom: 15,
-        paint: {
-          "heatmap-weight": ["get", "intensity"],
-          "heatmap-intensity": 2,
-          "heatmap-color": [
-            "interpolate",
-            ["linear"],
-            ["heatmap-value"],
-            0, "rgba(0, 255, 0, 0)",
-            0.3, "rgba(255, 165, 0, 0.4)",
-            0.7, "rgba(255, 69, 0, 0.6)",
-            1.0, "rgba(255, 0, 0, 0.8)"
+    try {
+      // 1. Traffic Heatmap
+      if (activeLayers.includes("traffic")) {
+        const trafficPoints = {
+          type: "FeatureCollection",
+          features: [
+            { type: "Feature", geometry: { type: "Point", coordinates: [76.3218, 9.9678] }, properties: { intensity: 0.9 } }, // Vytilla
+            { type: "Feature", geometry: { type: "Point", coordinates: [76.3116, 9.9366] }, properties: { intensity: 0.8 } }, // Kundannoor
+            { type: "Feature", geometry: { type: "Point", coordinates: [76.3090, 10.0250] }, properties: { intensity: 0.7 } }, // Edappally
+            { type: "Feature", geometry: { type: "Point", coordinates: [76.2828, 9.9722] }, properties: { intensity: 0.5 } }, // MG Road
+            { type: "Feature", geometry: { type: "Point", coordinates: [76.3120, 10.0076] }, properties: { intensity: 0.6 } }, // Palarivattom
           ],
-          "heatmap-radius": 35,
-          "heatmap-opacity": 0.55,
-        },
-      });
-    }
+        };
 
-    // 2. Flood Polygons (Marine Drive & Low Catchments)
-    if (activeLayers.includes("flood")) {
-      const floodZones = {
-        type: "FeatureCollection",
-        features: [
-          // Marine Drive Area Polygon
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [[
-                [76.270, 9.988],
-                [76.278, 9.986],
-                [76.275, 9.975],
-                [76.268, 9.978],
-                [76.270, 9.988]
-              ]]
+        if (!map.getSource("traffic-heatmap-src")) {
+          map.addSource("traffic-heatmap-src", {
+            type: "geojson",
+            data: trafficPoints,
+          });
+        }
+
+        if (!map.getLayer("traffic-heatmap-layer")) {
+          map.addLayer({
+            id: "traffic-heatmap-layer",
+            type: "heatmap",
+            source: "traffic-heatmap-src",
+            maxzoom: 15,
+            paint: {
+              "heatmap-weight": ["get", "intensity"],
+              "heatmap-intensity": 2,
+              "heatmap-color": [
+                "interpolate",
+                ["linear"],
+                ["heatmap-value"],
+                0, "rgba(0, 255, 0, 0)",
+                0.3, "rgba(255, 165, 0, 0.4)",
+                0.7, "rgba(255, 69, 0, 0.6)",
+                1.0, "rgba(255, 0, 0, 0.8)"
+              ],
+              "heatmap-radius": 35,
+              "heatmap-opacity": 0.55,
             },
-            properties: { risk: "high" }
+          });
+        }
+      }
+
+      // 2. Flood Polygons (Marine Drive & Low Catchments)
+      if (activeLayers.includes("flood")) {
+        const floodZones = {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [[
+                  [76.270, 9.988],
+                  [76.278, 9.986],
+                  [76.275, 9.975],
+                  [76.268, 9.978],
+                  [76.270, 9.988]
+                ]]
+              },
+              properties: { risk: "high" }
+            },
+            {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [[
+                  [76.308, 9.932],
+                  [76.315, 9.934],
+                  [76.316, 9.928],
+                  [76.309, 9.926],
+                  [76.308, 9.932]
+                ]]
+              },
+              properties: { risk: "medium" }
+            }
+          ]
+        };
+
+        if (!map.getSource("flood-zones-src")) {
+          map.addSource("flood-zones-src", {
+            type: "geojson",
+            data: floodZones,
+          });
+        }
+
+        if (!map.getLayer("flood-zones-layer")) {
+          map.addLayer({
+            id: "flood-zones-layer",
+            type: "fill",
+            source: "flood-zones-src",
+            paint: {
+              "fill-color": "#38bdf8",
+              "fill-opacity": 0.35,
+              "fill-outline-color": "#0284c7",
+            },
+          });
+        }
+      }
+
+      // 3. Transit Overlays (Kochi Metro Line)
+      if (activeLayers.includes("transit")) {
+        const metroLine = {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [76.350, 10.080],
+              [76.316, 10.024],
+              [76.299, 10.003],
+              [76.282, 9.972],
+              [76.321, 9.967],
+              [76.345, 9.955],
+            ],
           },
-          // Kundannoor low-lying canal
-          {
-            type: "Feature",
-            geometry: {
-              type: "Polygon",
-              coordinates: [[
-                [76.308, 9.932],
-                [76.315, 9.934],
-                [76.316, 9.928],
-                [76.309, 9.926],
-                [76.308, 9.932]
-              ]]
+        };
+
+        if (!map.getSource("metro-line-src")) {
+          map.addSource("metro-line-src", {
+            type: "geojson",
+            data: metroLine,
+          });
+        }
+
+        if (!map.getLayer("metro-line-layer")) {
+          map.addLayer({
+            id: "metro-line-layer",
+            type: "line",
+            source: "metro-line-src",
+            paint: {
+              "line-color": "#a855f7",
+              "line-width": 4,
+              "line-opacity": 0.8,
             },
-            properties: { risk: "medium" }
-          }
-        ]
-      };
-
-      map.addSource("flood-zones-src", {
-        type: "geojson",
-        data: floodZones,
-      });
-
-      map.addLayer({
-        id: "flood-zones-layer",
-        type: "fill",
-        source: "flood-zones-src",
-        paint: {
-          "fill-color": "#38bdf8", // Sky blue hex
-          "fill-opacity": 0.35,
-          "fill-outline-color": "#0284c7", // Darker blue outline hex
-        },
-      });
-    }
-
-    // 3. Transit Overlays (Kochi Metro Line)
-    if (activeLayers.includes("transit")) {
-      const metroLine = {
-        type: "Feature",
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [76.350, 10.080], // Aluva
-            [76.316, 10.024], // Edappally
-            [76.299, 10.003], // Palarivattom
-            [76.282, 9.972],  // MG Road
-            [76.321, 9.967],  // Vytilla
-            [76.345, 9.955],  // Tripunithura (Petta)
-          ],
-        },
-      };
-
-      map.addSource("metro-line-src", {
-        type: "geojson",
-        data: metroLine,
-      });
-
-      map.addLayer({
-        id: "metro-line-layer",
-        type: "line",
-        source: "metro-line-src",
-        paint: {
-          "line-color": "#a855f7", // Purple Metro Line hex
-          "line-width": 4,
-          "line-opacity": 0.8,
-        },
-      });
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Safely caught map overlay setup error:", err);
     }
   };
 
@@ -441,35 +455,39 @@ export function CityMap({
             geometry: coords,
           });
 
-          // Draw the route geometry on map
-          if (map.getLayer("route-line")) map.removeLayer("route-line");
-          if (map.getLayer("route-traffic-flow")) map.removeLayer("route-traffic-flow");
-          if (map.getSource("route-src")) map.removeSource("route-src");
+          // Draw the route geometry on map safely
+          try {
+            if (map.getLayer("route-line")) map.removeLayer("route-line");
+            if (map.getLayer("route-traffic-flow")) map.removeLayer("route-traffic-flow");
+            if (map.getSource("route-src")) map.removeSource("route-src");
 
-          map.addSource("route-src", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              properties: {},
-              geometry: route.geometry,
-            },
-          });
+            map.addSource("route-src", {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {},
+                geometry: route.geometry,
+              },
+            });
 
-          // Main route drawing (like Google Maps)
-          map.addLayer({
-            id: "route-line",
-            type: "line",
-            source: "route-src",
-            layout: {
-              "line-join": "round",
-              "line-cap": "round",
-            },
-            paint: {
-              "line-color": greenCorridorActive ? "#10b981" : "#3b82f6", // Green for emergency path / Blue for normal path (hex colors)
-              "line-width": 7,
-              "line-opacity": 0.85,
-            },
-          });
+            // Main route drawing (like Google Maps)
+            map.addLayer({
+              id: "route-line",
+              type: "line",
+              source: "route-src",
+              layout: {
+                "line-join": "round",
+                "line-cap": "round",
+              },
+              paint: {
+                "line-color": greenCorridorActive ? "#10b981" : "#3b82f6", // Green for emergency path / Blue for normal path
+                "line-width": 7,
+                "line-opacity": 0.85,
+              },
+            });
+          } catch (routeErr) {
+            console.warn("Route drawing safely caught error:", routeErr);
+          }
 
           // Zoom and Pan to fit the route bounds
           import("mapbox-gl").then((m) => {
