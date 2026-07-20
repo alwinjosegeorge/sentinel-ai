@@ -1025,7 +1025,7 @@ function AiAssistantScreen() {
               "p-3 rounded-2xl max-w-[80%] leading-relaxed shadow-2xs",
               m.role === "user" ? "bg-primary text-white rounded-tr-sm" : "bg-slate-50 border border-slate-200 text-slate-700 rounded-tl-sm"
             )}>
-              <span className="whitespace-pre-line font-medium">{m.text}</span>
+              <FormattedMarkdown text={m.text} />
             </div>
           </div>
         ))}
@@ -1263,6 +1263,31 @@ VITE_OPENWEATHER_API_KEY=your_key_here`}
           CityTwin AI Citizen app · v1.4.0 (Kochi Metro Ops)
         </div>
       </div>
+    </div>
+  );
+}
+
+function FormattedMarkdown({ text }: { text: string }) {
+  const parseBold = (s: string) =>
+    s
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em class="italic opacity-90">$1</em>');
+
+  const lines = text.split("\n");
+  return (
+    <div className="space-y-1">
+      {lines.map((line, i) => {
+        if (line.startsWith("- ") || line.startsWith("• ")) {
+          return (
+            <div key={i} className="flex gap-1.5 pl-1">
+              <span className="text-slate-400">•</span>
+              <span dangerouslySetInnerHTML={{ __html: parseBold(line.replace(/^[-•]\s*/, "")) }} />
+            </div>
+          );
+        }
+        if (!line.trim()) return <div key={i} className="h-1" />;
+        return <p key={i} dangerouslySetInnerHTML={{ __html: parseBold(line) }} />;
+      })}
     </div>
   );
 }
