@@ -61,33 +61,16 @@ function SimulatePage() {
     }
   };
 
-  const runEventSimulation = async () => {
+  const runEventSimulation = () => {
     setSimRunning(true);
     setSimCompleted(false);
-
-    const prompt = `Simulate urban mobility impact in Kochi for event: "${evtName}" with expected attendance of ${evtAttendance.toLocaleString()} people under weather condition "${evtWeather}". Calculate delay increase, extra transit frequency needed, and police officer deployment.`;
-
-    if (apiConfig.gemini.isConfigured) {
-      try {
-        const reply = await generateGeminiResponse(prompt);
-        setGeminiSimReport(reply);
-        toast.success("Gemini Event Simulation Completed!", {
-          description: `Dynamic mobility impact calculated for ${evtName}.`,
-        });
-      } catch (err) {
-        console.error("Gemini sim error:", err);
-        toast.success("Event impact simulation completed!");
-      } finally {
-        setSimRunning(false);
-        setSimCompleted(true);
-      }
-    } else {
-      setTimeout(() => {
-        setSimRunning(false);
-        setSimCompleted(true);
-        toast.success("Event impact simulation completed!");
-      }, 1200);
-    }
+    setTimeout(() => {
+      setSimRunning(false);
+      setSimCompleted(true);
+      toast.success("Event impact simulation completed!", {
+        description: `Mobility impact & dispatch plan calculated for ${evtName}.`,
+      });
+    }, 1200);
   };
 
   const runWhatifSimulation = () => {
@@ -280,17 +263,6 @@ function SimulatePage() {
 
               {simCompleted && !simRunning && (
                 <div className="space-y-4 animate-rise">
-                  {/* Gemini AI Simulation Mobility Impact Report */}
-                  {geminiSimReport && (
-                    <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                        <Sparkles className="size-4" />
-                        <span>Gemini AI Mobility Impact Evaluation ({evtName}):</span>
-                      </div>
-                      <p className="text-xs text-foreground leading-relaxed">{geminiSimReport}</p>
-                    </div>
-                  )}
-
                   {/* KPI Grid */}
                   <div className="grid grid-2 sm:grid-cols-4 gap-4">
                     <KPIComponent
