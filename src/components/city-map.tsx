@@ -98,7 +98,7 @@ export function CityMap({
 
       mapRef.current = map;
 
-      // Add Tile Layer (CartoDB Voyager for light / CartoDB Dark Matter for dark)
+      // Add Tile Layer (OpenStreetMap / CartoDB Voyager for light / Dark Matter for dark)
       const tileUrl = isDarkMode
         ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
@@ -106,6 +106,7 @@ export function CityMap({
       L.tileLayer(tileUrl, {
         maxZoom: 19,
         subdomains: "abcd",
+        attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
       // Create Layer Groups
@@ -114,12 +115,16 @@ export function CityMap({
       layerGroupRef.current = layerGroup;
       routeLayerRef.current = routeLayer;
 
-      // Fix container resize glitches
-      setTimeout(() => {
+      // Invalidate size on mount & multiple intervals to ensure 100% container filling
+      const invalidate = () => {
         if (mapRef.current) {
           mapRef.current.invalidateSize();
         }
-      }, 200);
+      };
+      invalidate();
+      setTimeout(invalidate, 100);
+      setTimeout(invalidate, 400);
+      setTimeout(invalidate, 1000);
     });
 
     return () => {
@@ -336,8 +341,8 @@ export function CityMap({
   }, [routingMode, startLocation, endLocation, greenCorridorActive]);
 
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm", className)}>
-      <div ref={mapContainerRef} style={{ height, width: "100%" }} className="z-0" />
+    <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm w-full h-full min-h-[420px]", className)}>
+      <div ref={mapContainerRef} style={{ height: typeof height === "number" ? `${height}px` : height, minHeight: "420px", width: "100%" }} className="z-0 w-full h-full min-h-[420px]" />
 
       {/* Selected Incident Popup Panel */}
       {selectedIncident && (
