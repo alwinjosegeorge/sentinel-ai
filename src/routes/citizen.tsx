@@ -20,6 +20,10 @@ import {
   X,
   UploadCloud,
   CheckCircle,
+  CheckCircle2,
+  Check,
+  Shield,
+  ChevronRight,
   Laptop,
   Camera,
   Video,
@@ -813,6 +817,7 @@ function AlertsScreen() {
 // ============================================
 function MyReportsScreen() {
   const { citizenReports } = useSentinelStore();
+  const [selectedReport, setSelectedReport] = useState<any | null>(null);
 
   const getStatusIndex = (status: string) => {
     switch (status) {
@@ -824,58 +829,102 @@ function MyReportsScreen() {
     }
   };
 
-  const steps = ["Submitted", "AI Processing", "Dept Assigned", "Response Started", "Resolved"];
+  const steps = [
+    { label: "Submitted", sub: "Ticket Logged" },
+    { label: "AI Verified", sub: "Vision Validated" },
+    { label: "Assigned", sub: "Dept Notified" },
+    { label: "Response", sub: "Unit En Route" },
+    { label: "Resolved", sub: "Issue Closed" },
+  ];
 
   return (
-    <div className="space-y-4 pb-4">
-      <h3 className="text-sm font-bold tracking-tight uppercase text-slate-350">My Reports</h3>
+    <div className="space-y-6 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200/60 pb-3">
+        <div>
+          <h3 className="text-base font-display font-bold text-slate-800 tracking-tight uppercase">My Submitted Reports</h3>
+          <p className="text-xs text-slate-500">Track real-time resolution progress, AI verification, and field team response across Kochi.</p>
+        </div>
+        <span className="self-start sm:self-center rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-mono font-bold text-primary">
+          {citizenReports.length} Active Tickets
+        </span>
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         {citizenReports.map((rep) => {
           const activeIndex = getStatusIndex(rep.status);
           
           return (
-            <div key={rep.id} className="bg-white rounded-3xl p-4 border border-slate-200/60 space-y-3 flex flex-col justify-between hover:bg-slate-50/50 transition-colors shadow-xs">
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-800">{rep.title}</h4>
-                    <p className="text-[9px] text-slate-400 font-semibold">{rep.location} · {rep.id}</p>
+            <div
+              key={rep.id}
+              className="group relative bg-white/95 rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-5"
+            >
+              {/* Top Bar: Title, ID & Status Badge */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-600 border border-slate-200">
+                        {rep.id}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 font-medium">
+                        {rep.minutesAgo}m ago
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">
+                      {rep.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                      <MapPin className="size-3.5 text-slate-400 shrink-0" />
+                      {rep.location}
+                    </p>
                   </div>
+
                   <span className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[8px] font-bold uppercase",
-                    rep.status === "resolved" ? "bg-success/20 text-success" : "bg-primary/20 text-primary"
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border shrink-0 shadow-2xs",
+                    rep.status === "resolved" 
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-700" 
+                      : rep.status === "assigned"
+                        ? "bg-blue-50 border-blue-200 text-blue-700"
+                        : "bg-cyan-50 border-cyan-200 text-cyan-700"
                   )}>
+                    {rep.status === "resolved" && <CheckCircle2 className="size-3 text-emerald-600" />}
+                    {rep.status === "assigned" && <Shield className="size-3 text-blue-600" />}
+                    {rep.status !== "resolved" && rep.status !== "assigned" && <Sparkles className="size-3 text-cyan-600" />}
                     {rep.status}
                   </span>
                 </div>
 
-                {/* Status Timeline */}
-                <div className="pt-2">
+                {/* Ultra-Clean Stepper Progress Bar */}
+                <div className="pt-2 pb-1 px-1">
                   <div className="flex justify-between items-center relative">
-                    {/* Progress Line */}
-                    <div className="absolute left-0 right-0 h-[2px] bg-slate-200 -translate-y-1/2 top-1/2 -z-10" />
+                    {/* Background Track Line */}
+                    <div className="absolute left-3 right-3 h-1 bg-slate-100 -translate-y-1/2 top-3 -z-10 rounded-full" />
+                    {/* Active Gradient Connector Line */}
                     <div 
-                      className="absolute left-0 h-[2px] bg-primary -translate-y-1/2 top-1/2 -z-10 transition-all duration-500" 
-                      style={{ width: `${(activeIndex / 4) * 100}%` }}
+                      className="absolute left-3 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-emerald-500 -translate-y-1/2 top-3 -z-10 transition-all duration-700 rounded-full" 
+                      style={{ width: `${(activeIndex / 4) * 92}%` }}
                     />
 
                     {steps.map((step, idx) => {
                       const isDone = idx <= activeIndex;
                       const isCurrent = idx === activeIndex;
                       return (
-                        <div key={step} className="flex flex-col items-center">
+                        <div key={step.label} className="flex flex-col items-center">
                           <div className={cn(
-                            "size-4 rounded-full flex items-center justify-center text-[8px] transition-all",
-                            isCurrent ? "bg-primary text-white scale-115" : isDone ? "bg-primary/25 border border-primary text-primary font-bold" : "bg-white border border-slate-350 text-slate-400"
+                            "size-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all shadow-xs",
+                            isCurrent
+                              ? "bg-primary text-white scale-110 ring-4 ring-primary/20 shadow-md animate-pulse-soft"
+                              : isDone
+                                ? "bg-primary text-white"
+                                : "bg-white border-2 border-slate-200 text-slate-400"
                           )}>
-                            {isDone ? "✓" : idx + 1}
+                            {isDone ? <Check className="size-3.5 stroke-[3]" /> : idx + 1}
                           </div>
                           <span className={cn(
-                            "text-[7px] mt-1 font-bold",
-                            isCurrent ? "text-primary" : isDone ? "text-slate-600" : "text-slate-400"
+                            "text-[9.5px] mt-1.5 font-semibold text-center leading-tight",
+                            isCurrent ? "text-primary font-bold" : isDone ? "text-slate-700" : "text-slate-400"
                           )}>
-                            {step.split(" ")[0]}
+                            {step.label}
                           </span>
                         </div>
                       );
@@ -884,9 +933,32 @@ function MyReportsScreen() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-[9px] pt-2 border-t border-slate-100 text-slate-500">
-                <div>Department: <strong className="text-slate-700">{rep.department}</strong></div>
-                <div>Priority: <strong className="text-slate-700 uppercase">{rep.priority}</strong></div>
+              {/* Footer Info & Details */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-500 text-xs">
+                    Department: <strong className="text-slate-800 font-semibold">{rep.department}</strong>
+                  </span>
+                  <span className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                    rep.priority === "high" ? "bg-rose-100 text-rose-700" : rep.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"
+                  )}>
+                    {rep.priority} priority
+                  </span>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    toast.info(`Tracking Report ${rep.id}`, {
+                      description: `Assigned to ${rep.department} field unit. Resolution ETA: 25 min.`,
+                    });
+                  }}
+                  className="h-8 gap-1 text-[11px] font-semibold text-primary border-primary/30 hover:bg-primary/5 cursor-pointer rounded-xl"
+                >
+                  Track <ChevronRight className="size-3.5" />
+                </Button>
               </div>
             </div>
           );
