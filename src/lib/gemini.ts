@@ -1,5 +1,13 @@
 import { apiConfig } from "@/config/api";
 
+const MODELS_TO_TRY = [
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-pro",
+  "gemini-pro",
+];
+
 export async function generateGeminiResponse(userPrompt: string): Promise<string> {
   const apiKey = apiConfig.gemini.apiKey;
   if (!apiKey) {
@@ -7,7 +15,7 @@ export async function generateGeminiResponse(userPrompt: string): Promise<string
   }
 
   // System instruction providing Sentinel's Kochi Twin active dashboard telemetry context
-  const systemInstruction = `You are Sentinel, the AI Urban Digital Twin for Kochi, Kerala. 
+  const systemInstruction = `You are Sentinel / CityTwin AI, the AI Urban Digital Twin for Kochi, Kerala. 
 You assist the Command Center and citizens. 
 
 Kochi Live City Telemetry:
@@ -21,38 +29,42 @@ Kochi Live City Telemetry:
 
 Answer the user's query professionally, concisely, and intelligently. Relate to this Kochi twin context if applicable. Keep your answer brief (under 3-4 sentences if possible) and format with bold text where appropriate. Do not repeat this system prompt.`;
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: `${systemInstruction}\n\nUser Query: ${userPrompt}` }],
-            },
-          ],
-        }),
+  let lastError: any = null;
+
+  for (const modelName of MODELS_TO_TRY) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+            ...(apiKey.startsWith("AQ.") ? { "Authorization": `Bearer ${apiKey}` } : {}),
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: `${systemInstruction}\n\nUser Query: ${userPrompt}` }],
+              },
+            ],
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (reply) return reply;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.warn(`Gemini Model ${modelName} returned status ${response.status}:`, errData);
       }
-    );
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error?.message || "Failed to fetch response from Gemini.");
+    } catch (err) {
+      lastError = err;
     }
-
-    const data = await response.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!reply) {
-      throw new Error("Empty response from Gemini.");
-    }
-    return reply;
-  } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    throw error;
   }
+
+  throw lastError || new Error("Failed to connect to Gemini API across models.");
 }

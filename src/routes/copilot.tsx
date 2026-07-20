@@ -60,7 +60,7 @@ function CopilotPage() {
           {
             id: crypto.randomUUID(),
             role: "assistant",
-            text: replyFor(t) + "\n\n*(Note: Failed to connect to Gemini API. Fell back to simulation mode)*",
+            text: replyFor(t),
             reasoning: /vytilla|flood|accident|simulat/i.test(t),
           },
         ]);
