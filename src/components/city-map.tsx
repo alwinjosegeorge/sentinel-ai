@@ -14,6 +14,7 @@ interface Props {
   startLocation?: { lng: number; lat: number };
   endLocation?: { lng: number; lat: number };
   activeLayers?: string[];
+  vehicleType?: string;
 }
 
 export function CityMap({
@@ -25,6 +26,7 @@ export function CityMap({
   startLocation,
   endLocation,
   activeLayers = ["traffic", "flood", "cctv", "transit", "emergency"],
+  vehicleType = "amb",
 }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -282,9 +284,16 @@ export function CityMap({
     });
   }, [displayPins, activeLayers]);
 
-  // Handle Routing (OSRM Driving directions API)
+  const animRef = useRef<any>(null);
+
+  // Handle Routing & Live Animated Vehicle Movement
   useEffect(() => {
     if (typeof window === "undefined" || !mapRef.current || !routeLayerRef.current) return;
+
+    if (animRef.current) {
+      clearInterval(animRef.current);
+      animRef.current = null;
+    }
 
     import("leaflet").then((leafletModule) => {
       const L = leafletModule.default ?? leafletModule;
@@ -321,15 +330,61 @@ export function CityMap({
               geometry: coords,
             });
 
-            // Draw route polyline on Leaflet map
+            // 1. Draw main route polyline on Leaflet map
             const polyline = L.polyline(latLngs, {
               color: greenCorridorActive ? "#10b981" : "#3b82f6",
               weight: 6,
               opacity: 0.85,
             }).addTo(routeLayer);
 
+            // 2. Draw Start (Origin) Pin A
+            const startHtml = `<div class="grid size-6 place-items-center rounded-full bg-emerald-500 text-white font-bold text-[10px] shadow-md border-2 border-white dark:border-black">A</div>`;
+            const startIcon = L.divIcon({ html: startHtml, className: "custom-pin-start", iconSize: [24, 24], iconAnchor: [12, 12] });
+            L.marker(latLngs[0], { icon: startIcon }).addTo(routeLayer);
+
+            // 3. Draw End (Destination) Pin B
+            const endHtml = `<div class="grid size-6 place-items-center rounded-full bg-rose-500 text-white font-bold text-[10px] shadow-md border-2 border-white dark:border-black">B</div>`;
+            const endIcon = L.divIcon({ html: endHtml, className: "custom-pin-end", iconSize: [24, 24], iconAnchor: [12, 12] });
+            L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).addTo(routeLayer);
+
+            // 4. Create Animated Moving Vehicle Marker
+            const vehicleEmoji = vehicleType === "pol" ? "🚓" : vehicleType === "fire" ? "🚒" : "🚑";
+            const ringColor = vehicleType === "pol" ? "bg-blue-500/40" : vehicleType === "fire" ? "bg-red-500/40" : "bg-emerald-500/40";
+            const badgeBg = vehicleType === "pol" ? "bg-blue-600" : vehicleType === "fire" ? "bg-red-600" : "bg-emerald-500";
+
+            const vehicleHtml = `
+              <div class="relative flex items-center justify-center">
+                <span class="absolute inline-flex h-9 w-9 animate-ping rounded-full ${ringColor}"></span>
+                <div class="flex items-center justify-center h-8 w-8 rounded-full ${badgeBg} text-white shadow-xl border-2 border-white dark:border-black text-sm">
+                  ${vehicleEmoji}
+                </div>
+              </div>
+            `;
+
+            const vehicleIcon = L.divIcon({
+              html: vehicleHtml,
+              className: "custom-vehicle-anim-icon",
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+            });
+
+            const vehicleMarker = L.marker(latLngs[0], { icon: vehicleIcon }).addTo(routeLayer);
+
             // Fit map bounds around route
             mapRef.current?.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+
+            // 5. Animate vehicle smoothly along coordinates
+            let stepIndex = 0;
+            const totalSteps = latLngs.length;
+
+            if (totalSteps > 1) {
+              const speed = greenCorridorActive ? 250 : 450;
+              animRef.current = setInterval(() => {
+                stepIndex = (stepIndex + 1) % totalSteps;
+                const nextPos = latLngs[stepIndex];
+                vehicleMarker.setLatLng(nextPos);
+              }, speed);
+            }
           }
         } catch (err) {
           console.error("OSRM Route fetching error:", err);
@@ -338,7 +393,14 @@ export function CityMap({
 
       fetchRoute();
     });
-  }, [routingMode, startLocation, endLocation, greenCorridorActive]);
+
+    return () => {
+      if (animRef.current) {
+        clearInterval(animRef.current);
+        animRef.current = null;
+      }
+    };
+  }, [routingMode, startLocation, endLocation, greenCorridorActive, vehicleType]);
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm w-full h-full min-h-[420px]", className)}>

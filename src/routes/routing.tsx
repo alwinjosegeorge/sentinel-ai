@@ -180,6 +180,7 @@ function RoutingPage() {
                 routingMode={true}
                 startLocation={startLoc}
                 endLocation={endLoc}
+                vehicleType={vehicle}
               />
             </div>
             <div className="grid grid-cols-3 divide-x divide-border border-t border-border bg-card">
