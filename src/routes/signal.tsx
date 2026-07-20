@@ -171,7 +171,7 @@ function SignalControlPage() {
                     <h2 className="font-display text-xl font-semibold text-foreground">{j.name}</h2>
                     <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-500 flex items-center gap-1">
                       <Cpu className="size-3" />
-                      Gemini Optimizer
+                      CityTwin AI Optimizer
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">Control Mode: <span className="font-bold text-foreground">{j.mode}</span></p>
@@ -198,7 +198,7 @@ function SignalControlPage() {
                     className="h-8 gap-1.5 text-xs font-medium cursor-pointer"
                   >
                     <RefreshCw className={cn("size-3 text-emerald-500", isOptimizing && "animate-spin")} />
-                    {isOptimizing ? "Optimizing..." : "Recalculate Signal with Gemini"}
+                    {isOptimizing ? "Optimizing..." : "Recalculate Signal with AI"}
                   </Button>
                 </div>
 
@@ -218,12 +218,12 @@ function SignalControlPage() {
                 </div>
               </div>
 
-              {/* Gemini AI Signal Strategy Insight Box */}
+              {/* CityTwin AI Signal Strategy Insight Box */}
               {geminiInsight && (
                 <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-1.5 animate-in fade-in">
                   <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                     <Sparkles className="size-4" />
-                    <span>Gemini AI Recommended Signal Strategy:</span>
+                    <span>CityTwin AI Recommended Signal Strategy:</span>
                   </div>
                   <p className="text-xs text-foreground leading-relaxed">{geminiInsight}</p>
                 </div>
