@@ -166,16 +166,10 @@ function SignalControlPage() {
             {/* Junction Controller Card */}
             <GlassCard className="space-y-6">
               <div className="flex items-center justify-between border-b border-border pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
+                  <div>
                     <h2 className="font-display text-xl font-semibold text-foreground">{j.name}</h2>
-                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-500 flex items-center gap-1">
-                      <Cpu className="size-3" />
-                      CityTwin AI Optimizer
-                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">Control Mode: <span className="font-bold text-foreground">{j.mode}</span></p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Control Mode: <span className="font-bold text-foreground">{j.mode}</span></p>
-                </div>
 
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-semibold text-muted-foreground">AI Adaptive Mode</span>
