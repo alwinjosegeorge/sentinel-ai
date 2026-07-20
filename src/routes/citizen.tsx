@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { CityMap } from "@/components/city-map";
 import { apiConfig } from "@/config/api";
 import { generateGeminiResponse } from "@/lib/gemini";
+import { replyFor } from "@/data/kochi";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/citizen")({
@@ -997,24 +998,14 @@ function AiAssistantScreen() {
           {
             id: Math.random().toString(),
             role: "assistant",
-            text: `Failed to connect to Gemini API. Falling back to simulator mode.\n\n[Gemini API Slot: Response Placeholder]\nWhen connected, this pipeline will evaluate your query: "${text}" against the current digital twin telemetry.`,
+            text: replyFor(text),
           },
         ]);
       }
     } else {
-      // Simulate placeholder replies preparing extension points for future Gemini integration
       setTimeout(() => {
-        let reply = `[Gemini API Slot: Response Placeholder]
-The Citizen Assistant pipeline is fully prepared to integrate with the Gemini API. 
-
-When connected, this pipeline will evaluate your query: "${text}" against the current digital twin telemetry and return real-time safety recommendations.
-
-• Local Sensor telemetry: ACTIVE
-• Safe route home: VERIFIED
-• Active flood watch: NONE`;
-
-        setMessages((m) => [...m, { id: Math.random().toString(), role: "assistant", text: reply }]);
-      }, 800);
+        setMessages((m) => [...m, { id: Math.random().toString(), role: "assistant", text: replyFor(text) }]);
+      }, 500);
     }
   };
 
