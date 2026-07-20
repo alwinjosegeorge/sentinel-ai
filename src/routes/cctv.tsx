@@ -19,32 +19,14 @@ export const Route = createFileRoute("/cctv")({
   component: CctvPage,
 });
 
-// Reliable traffic video streams with Google Cloud / Intel IoT fallbacks
+// High-Definition Hikvision & Sysvideo 4K Traffic Analysis Video Feeds
 const feedVideos: Record<string, string[]> = {
-  "CAM-14": [
-    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  ],
-  "CAM-22": [
-    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4#t=5",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4#t=5",
-  ],
-  "CAM-09": [
-    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4#t=10",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4#t=10",
-  ],
-  "CAM-31": [
-    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4#t=15",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4#t=15",
-  ],
-  "CAM-18": [
-    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4#t=20",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4#t=20",
-  ],
-  "CAM-07": [
-    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/car-detection.mp4#t=25",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4#t=25",
-  ],
+  "CAM-14": ["/cctv-feed-1.mp4", "/cctv-feed-2.mp4"],
+  "CAM-22": ["/cctv-feed-2.mp4", "/cctv-feed-1.mp4"],
+  "CAM-09": ["/cctv-feed-1.mp4#t=4", "/cctv-feed-2.mp4#t=2"],
+  "CAM-31": ["/cctv-feed-2.mp4#t=5", "/cctv-feed-1.mp4#t=5"],
+  "CAM-18": ["/cctv-feed-1.mp4#t=8", "/cctv-feed-2.mp4#t=7"],
+  "CAM-07": ["/cctv-feed-2.mp4#t=9", "/cctv-feed-1.mp4#t=10"],
 };
 
 interface DetectionBox {
