@@ -203,7 +203,10 @@ export function replyFor(prompt: string): string {
   if (lower.includes("ambulance")) return cannedReplies["Nearest ambulance"];
   if (lower.includes("report") || lower.includes("morning")) return cannedReplies["Generate morning report"];
   if (lower.includes("simulate") || lower.includes("simulation")) return cannedReplies["Run city simulation"];
-  return `I hear you — *"${trimmed}"*. In this demo I answer from a canned Kochi scenario library. Try one of the suggested prompts to see me reason through a full multi-agent response.`;
+  if (/^(hi|hello|hey|greetings|hola|namaste)/i.test(lower)) {
+    return "Hello! I am **CityTwin AI**, your intelligent digital twin assistant for Kochi city. How can I assist you with traffic monitoring, flood predictions, signal controls, or emergency dispatching today?";
+  }
+  return `I'm **CityTwin AI**, actively monitoring urban operations across Kochi (Vytilla, Kundannoor, Marine Drive, Edappally). Ask me about traffic congestion, flood warnings, signal optimization, or emergency rerouting!`;
 }
 
 export const floodAreas = [

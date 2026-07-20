@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { SuggestedPrompts } from "./suggested-prompts";
 import { replyFor } from "@/data/kochi";
 import { cn } from "@/lib/utils";
+import { apiConfig } from "@/config/api";
+import { generateGeminiResponse } from "@/lib/gemini";
 
 interface Msg {
   id: string;
@@ -31,17 +33,30 @@ export function SentinelAssistant() {
     if (open) setTimeout(() => inputRef.current?.focus(), 200);
   }, [open]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     const t = text.trim();
     if (!t) return;
     const userMsg: Msg = { id: crypto.randomUUID(), role: "user", text: t };
     setMessages((m) => [...m, userMsg]);
     setInput("");
     setThinking(true);
-    setTimeout(() => {
-      setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", text: replyFor(t) }]);
-      setThinking(false);
-    }, 700 + Math.random() * 400);
+
+    if (apiConfig.gemini.isConfigured) {
+      try {
+        const reply = await generateGeminiResponse(t);
+        setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", text: reply }]);
+      } catch (err: any) {
+        console.error("Gemini assistant error:", err);
+        setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", text: replyFor(t) }]);
+      } finally {
+        setThinking(false);
+      }
+    } else {
+      setTimeout(() => {
+        setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", text: replyFor(t) }]);
+        setThinking(false);
+      }, 600);
+    }
   };
 
   return (
