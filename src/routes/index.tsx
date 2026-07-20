@@ -104,7 +104,7 @@ function HomePage() {
           <GlassCard className="lg:col-span-2">
             <SectionHeader
               title="Digital Twin · Kochi"
-              hint="Live incidents · pulsing pins by severity"
+              hint="Live digital twin telemetry & incident map"
               action={
                 <Link to="/map" className="text-xs font-medium text-primary hover:underline">
                   Open full map →

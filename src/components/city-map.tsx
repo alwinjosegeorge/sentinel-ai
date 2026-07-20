@@ -90,7 +90,7 @@ export function CityMap({
 
       const map = L.map(mapContainerRef.current, {
         center: kochiCenter,
-        zoom: 12,
+        zoom: 13,
         zoomControl: interactive,
         dragging: interactive,
         scrollWheelZoom: interactive,
@@ -117,16 +117,16 @@ export function CityMap({
       layerGroupRef.current = layerGroup;
       routeLayerRef.current = routeLayer;
 
-      // Invalidate size on mount & multiple intervals to ensure 100% container filling
+      // Invalidate size on mount & reset view to Kochi center to prevent world zoomout
       const invalidate = () => {
         if (mapRef.current) {
           mapRef.current.invalidateSize();
+          mapRef.current.setView(kochiCenter, 13);
         }
       };
       invalidate();
-      setTimeout(invalidate, 100);
-      setTimeout(invalidate, 400);
-      setTimeout(invalidate, 1000);
+      setTimeout(invalidate, 150);
+      setTimeout(invalidate, 500);
     });
 
     return () => {
@@ -400,9 +400,10 @@ export function CityMap({
     };
   }, [routingMode, startLocation, endLocation, greenCorridorActive, vehicleType]);
 
+  const heightStyle = typeof height === "number" ? `${height}px` : height;
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm w-full h-full min-h-[420px]", className)}>
-      <div ref={mapContainerRef} style={{ height: typeof height === "number" ? `${height}px` : height, minHeight: "420px", width: "100%" }} className="z-0 w-full h-full min-h-[420px]" />
+    <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm w-full", className)} style={{ height: heightStyle }}>
+      <div ref={mapContainerRef} style={{ height: "100%", width: "100%" }} className="z-0 w-full h-full" />
 
       {/* Selected Incident Popup Panel */}
       {selectedIncident && (
