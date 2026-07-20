@@ -218,7 +218,6 @@ export function CityMap({
         const html = `
           <div class="relative flex items-center justify-center cursor-pointer">
             <span class="relative flex h-5 w-5">
-              ${isPulse ? `<span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${colorClass}"></span>` : ""}
               <span class="relative inline-flex rounded-full h-5 w-5 border-2 border-white dark:border-black ${colorClass} shadow-md"></span>
             </span>
           </div>
@@ -354,7 +353,6 @@ export function CityMap({
 
             const vehicleHtml = `
               <div class="relative flex items-center justify-center">
-                <span class="absolute inline-flex h-9 w-9 animate-ping rounded-full ${ringColor}"></span>
                 <div class="flex items-center justify-center h-8 w-8 rounded-full ${badgeBg} text-white shadow-xl border-2 border-white dark:border-black text-sm">
                   ${vehicleEmoji}
                 </div>
